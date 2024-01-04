@@ -5,8 +5,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 import time
 from selenium.common.exceptions import TimeoutException
-from selenium.common.exceptions import NoSuchElementException
-from concurrent.futures import ThreadPoolExecutor
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from selenium.webdriver.firefox.options import Options
 import time
 import re
@@ -28,7 +28,7 @@ def task(url,thread_number):
         firefox_options = Options()
         firefox_options.binary_location = r"C:\Program Files\Mozilla Firefox\firefox.exe"
 
-        #firefox_options.add_argument("--headless")  # Activa el modo sin cabeza
+        firefox_options.add_argument("--headless")  # Activa el modo sin cabeza
         driver = webdriver.Firefox(service=service, options=firefox_options)
         print(f"Hilo {thread_number}: Navegador iniciado, accediendo a {url}")
 
@@ -141,8 +141,29 @@ def task(url,thread_number):
         driver.quit()
 
 
-urls = ["http://172.16.148.130:5000/login#/login"] * 5  # Lista de URLs para cada hilo
 
+def launch_tasks_in_batches(urls, batch_size, delay_between_batches):
+    executor = ThreadPoolExecutor(max_workers=batch_size)
+    futures = []
+    thread_number = 0  # Contador para el número de hilo
 
-with ThreadPoolExecutor(max_workers=5) as executor:
-    executor.map(task, urls, range(5))  # range(5) proporciona un número único a cada hilo
+    for i in range(0, len(urls), batch_size):
+        batch_urls = urls[i:i + batch_size]
+        for url in batch_urls:
+            future = executor.submit(task, url, thread_number)
+            futures.append(future)
+            thread_number += 1  # Incrementa el contador para cada nuevo hilo
+        print(f"Lanzando lote {i // batch_size + 1}")
+        time.sleep(delay_between_batches)
+
+    # Esperar a que todas las tareas se completen
+    for future in as_completed(futures):
+        future.result()  # Esto bloqueará hasta que la tarea específica se complete
+
+    executor.shutdown(wait=True)
+
+urls = ["http://172.16.148.130:5000/login#/login"] * 100  # Lista de URLs
+BATCH_SIZE = 10
+DELAY_BETWEEN_BATCHES = 150  # 30 segundos de retraso entre cada lote
+
+launch_tasks_in_batches(urls, BATCH_SIZE, DELAY_BETWEEN_BATCHES)
