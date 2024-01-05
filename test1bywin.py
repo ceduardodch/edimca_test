@@ -32,6 +32,7 @@ def task(url,thread_number):
         driver = webdriver.Firefox(service=service, options=firefox_options)
         print(f"Hilo {thread_number}: Navegador iniciado, accediendo a {url}")
 
+
         driver.get(url)
 
         # Wait for the page to load
@@ -65,41 +66,44 @@ def task(url,thread_number):
 
         search_button = driver.find_element(By.XPATH, '//button[@id="idSearchInputButton"]')
         search_button.click()
-        time.sleep(25)  # It's better to use explicit waits here as well
+        time.sleep(15)  # It's better to use explicit waits here as well
 
 
         input_table_body = driver.find_element(By.CLASS_NAME, "p-datatable-tbody")
         children_rows = input_table_body.find_elements(By.XPATH, 'tr')
+        random_ranges = [(900, 1200),(1,20), (800, 900)]
 
         for child_row in children_rows:
             children_columns = child_row.find_elements(By.XPATH, 'td')
             children_columns_list = []
 
-            for child_column in children_columns:
+            for index, child_column in enumerate(children_columns):
                 if child_column.get_attribute("class") == 'p-editable-column' and re.search(r'_([1-3])$', child_column.get_attribute('id')):
                     children_columns_list.append(child_column)
 
-            for col in children_columns_list:
-                try:
-                    # Espera hasta que el elemento sea clickeable
-                    WebDriverWait(driver, 10).until(EC.element_to_be_clickable(col))
-                    col.click()
+                    # Determina el rango aleatorio basado en el índice de la columna
+                    random_range = random_ranges[index % len(random_ranges)]  # Usa el módulo para ciclar a través de los rangos
+
                     try:
-                        # Espera hasta que el input esté presente en el elemento
-                        input_field = WebDriverWait(col, 10).until(
-                            EC.presence_of_element_located((By.TAG_NAME, 'input'))
-                        )
-                        random_int = random.randint(100, 200)
-                        input_field.clear()  # Limpia cualquier texto existente antes de escribir
-                        input_field.send_keys(f'{random_int}')
+                        WebDriverWait(driver, 10).until(EC.element_to_be_clickable(child_column))
+                        child_column.click()
+                        try:
+                            input_field = WebDriverWait(child_column, 10).until(
+                                EC.presence_of_element_located((By.TAG_NAME, 'input'))
+                            )
+                            random_int = random.randint(*random_range)
+                            input_field.clear()
+                            input_field.send_keys(f'{random_int}')
+                        except TimeoutException:
+                            print("Timeout esperando el campo de entrada")
+                        except StaleElementReferenceException:
+                            print("Referencia obsoleta del elemento")
                     except TimeoutException:
-                        print("Timeout esperando el campo de entrada")
-                    except StaleElementReferenceException:
-                        print("Referencia obsoleta del elemento")
-                except TimeoutException:
-                    print("Timeout esperando que la columna sea clickeable")
-                except NoSuchElementException:
-                    print("Elemento no encontrado")
+                        print("Timeout esperando que la columna sea clickeable")
+                    except NoSuchElementException:
+                        print("Elemento no encontrado")
+        step_completed_time = datetime.now()
+        print(f"Hilo {thread_number}: Paso completado en {step_completed_time - start_time}")
 
         print(f"Hilo {thread_number}: Ingresando cantidades de material")
 
@@ -109,11 +113,11 @@ def task(url,thread_number):
         client_input = driver.find_element(By.XPATH, '//input[@name="value4"]')
         client_input.send_keys('COCINA')  # Replace with the actual username
         time.sleep(5)  # It's better to use explicit waits here as well
-        sierra_image2 = WebDriverWait(driver, 10).until(
+        sierra_image2 = WebDriverWait(driver, 20).until(
                 EC.element_to_be_clickable((By.XPATH, '//img[@alt="sierra"]'))
             )
         sierra_image2.click()
-        time.sleep(25)  # It's better to use explicit waits here as well
+        time.sleep(15)  # It's better to use explicit waits here as well
         sierra_image3 = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.XPATH, '//img[@alt="close"]'))
             )
@@ -134,6 +138,8 @@ def task(url,thread_number):
         time.sleep(20)  # It's better to use explicit waits here as well
         print(f"Hilo {thread_number}: Tarea completada")
         driver.save_screenshot(f"printscreenshots/printscreenshot{thread_number}.png")
+        end_time = datetime.now()
+        print(f"Hilo {thread_number}: Tarea completada en {end_time - start_time}")
         driver.quit()
     except Exception as e:
         print(f"Hilo {thread_number}: Error occurred - {str(e)}")
@@ -162,8 +168,8 @@ def launch_tasks_in_batches(urls, batch_size, delay_between_batches):
 
     executor.shutdown(wait=True)
 
-urls = ["http://172.16.148.130:5000/login#/login"] * 100  # Lista de URLs
-BATCH_SIZE = 10
-DELAY_BETWEEN_BATCHES = 150  # 30 segundos de retraso entre cada lote
+urls = ["http://172.16.148.130:5000/login#/login"] * 80  # Lista de URLs
+BATCH_SIZE = 20
+DELAY_BETWEEN_BATCHES = 60  # 30 segundos de retraso entre cada lote
 
 launch_tasks_in_batches(urls, BATCH_SIZE, DELAY_BETWEEN_BATCHES)
