@@ -11,11 +11,14 @@ from selenium.webdriver.firefox.options import Options
 import time
 import re
 import random
+from datetime import datetime
+
 
 def task(url,thread_number):
 
     try:
-        
+        start_time = datetime.now()  # Marca de tiempo al inicio de la tarea
+
         print(f"Hilo {thread_number}: iniciado")
 
         # Path to the GeckoDriver executable

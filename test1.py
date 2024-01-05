@@ -170,8 +170,8 @@ def launch_tasks_in_batches(urls, batch_size, delay_between_batches):
 
     executor.shutdown(wait=True)
 
-urls = ["http://172.16.148.130:5000/login#/login"] * 80  # Lista de URLs
-BATCH_SIZE = 20
+urls = ["http://172.16.148.130:5000/login#/login"] * 50  # Lista de URLs
+BATCH_SIZE = 10
 DELAY_BETWEEN_BATCHES = 60  # 30 segundos de retraso entre cada lote
 
 launch_tasks_in_batches(urls, BATCH_SIZE, DELAY_BETWEEN_BATCHES)
